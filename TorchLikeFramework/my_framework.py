@@ -222,6 +222,29 @@ class Linear(Layer):
     def forward(self, input):
         return input.mm(self.weight) + self.bias.expand(0, len(input.data))
 
+
+# Sequential module implementation
+class Sequential(Layer):
+    def __init__(self, layers=list()):
+        super().__init__()
+
+        self.layers = layers
+
+    def add(self, layer):
+        self.layers.append(layer)
+
+    def forward(self, input):
+        for layer in self.layers:
+            input = layer.forward(input)
+        return input
+
+    def get_parameters(self):
+        params = list()
+        for l in self.layers:
+            params += l.get_parameters()
+        return params
+
+
 if __name__ == '__main__':
     a = Tensor([1, 2, 3, 4, 5], autograd=True)
     b = Tensor([2, 2, 2, 2, 2], autograd=True)
