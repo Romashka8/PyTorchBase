@@ -108,6 +108,14 @@ class Tensor(object):
                     ones = Tensor(np.ones_like(self.grad.data))
                     self.creators[0].backward(self.grad * (ones - (self * self)))
 
+                if self.creation_op == 'index_select':
+                    new_grad = np.zeros_like(self.creators[0].data)
+                    indices_ = self.index_select_indices.data.flatten()
+                    grad_ = grad.data.reshape(len(indices_), -1)
+                    for i in range(len(indices_)):
+                        new_grad[indices_[i]] += grad_[i]
+                    self.creators[0].backward(Tensor(new_grad))
+
     def __add__(self, other):
         if self.autograd and other.autograd:
             return Tensor(self.data + other.data,
@@ -192,6 +200,16 @@ class Tensor(object):
                           creators=[self],
                           creation_op='tanh')
         return Tensor(np.tanh(self.data))
+
+    def index_select(self, indices):
+        if self.autograd:
+            new = Tensor(self.data[indices.data],
+                         autograd=True,
+                         creators=[self],
+                         creation_op="index_select")
+            new.index_select_indices = indices
+            return new
+        return Tensor(self.data[indices.data])
 
     def __repr__(self):
         return str(self.data.__repr__())
@@ -293,6 +311,22 @@ class MSELoss(Layer):
     def forward(self, pred, target):
         return ((pred - target) ** 2).sum(0)
 
+
+# Embedding layer - for NLP tasks
+class Embedding(Layer):
+    def __init__(self, vocab_size, dim):
+        super().__init__()
+
+        self.vocab_size = vocab_size
+        self.dim = dim
+
+        # this random initialiation style is just a convention from word2vec
+        self.weight = Tensor((np.random.rand(vocab_size, dim) - 0.5) / dim, autograd=True)
+
+        self.parameters.append(self.weight)
+
+    def forward(self, input):
+        return self.weight.index_select(input)
 
 if __name__ == '__main__':
     a = Tensor([1, 2, 3, 4, 5], autograd=True)
