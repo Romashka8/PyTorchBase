@@ -176,6 +176,30 @@ class Tensor(object):
         return str(self.data.__str__())
 
 
+# Adding SGD optimizer
+class SGD(object):
+    def __init__(self, parameters, alpha=0.1):
+        """
+        :param parameters: optimizing parameters(weights in neural network layers)
+        :param alpha: SDG coef
+        """
+        self.parameters = parameters
+        self.alpha = alpha
+
+    def zero(self):
+        for p in self.parameters:
+            p.grad.data *= 0
+
+    def step(self, zero=True):
+        """
+        :param zero: we need to zero grads for correct working
+        """
+        for p in self.parameters:
+            p.data -= p.grad.data * self.alpha
+            if zero:
+                p.grad.data *= 0
+
+
 if __name__ == '__main__':
     a = Tensor([1, 2, 3, 4, 5], autograd=True)
     b = Tensor([2, 2, 2, 2, 2], autograd=True)
