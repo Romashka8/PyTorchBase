@@ -245,6 +245,15 @@ class Sequential(Layer):
         return params
 
 
+# Define loss class
+class MSELoss(Layer):
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, pred, target):
+        return ((pred - target) ** 2).sum(0)
+
+
 if __name__ == '__main__':
     a = Tensor([1, 2, 3, 4, 5], autograd=True)
     b = Tensor([2, 2, 2, 2, 2], autograd=True)
