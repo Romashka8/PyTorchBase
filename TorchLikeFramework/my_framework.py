@@ -330,6 +330,40 @@ class Sequential(Layer):
         return params
 
 
+# RNN Layer(not tested yet)
+class RNNCell(Layer):
+    def __init__(self, n_inputs, n_hidden, n_output, activation='sigmoid'):
+        super().__init__()
+
+        self.n_inputs = n_inputs
+        self.n_hidden = n_hidden
+        self.n_output = n_output
+
+        if activation == 'sigmoid':
+            self.activation = Sigmoid()
+        elif activation == 'tanh':
+            self.activation = Tanh()
+        else:
+            raise Exception('Non-linearity not found')
+
+        self.w_ih = Linear(n_inputs, n_hidden)
+        self.w_hh = Linear(n_hidden, n_hidden)
+        self.w_ho = Linear(n_hidden, n_output)
+
+        self.parameters += self.w_ih.get_parameters()
+        self.parameters += self.w_hh.get_parameters()
+        self.parameters += self.w_ho.get_parameters()
+
+    def forward(self, input, hidden):
+        from_prev_hidden = self.w_hh.forward(hidden)
+        combined = self.w_ih.forward(input) + from_prev_hidden
+        new_hidden = self.activation.forward(combined)
+        output = self.w_ho.forward(new_hidden)
+        return output, new_hidden
+
+    def init_hidden(self, batch_size=1):
+        return Tensor(np.zeros((batch_size, self.n_hidden)), autograd=True)
+
 # Define loss class
 class MSELoss(Layer):
     def __init__(self):
@@ -363,16 +397,3 @@ class Embedding(Layer):
 
     def forward(self, input):
         return self.weight.index_select(input)
-
-if __name__ == '__main__':
-    a = Tensor([1, 2, 3, 4, 5], autograd=True)
-    b = Tensor([2, 2, 2, 2, 2], autograd=True)
-    c = Tensor([5, 4, 3, 2, 1], autograd=True)
-
-    d = a - b
-    e = b + c
-    f = d + e
-
-    f.backward(Tensor(np.array([1, 1, 1, 1, 1])))
-
-    print(b.grad.data == np.array([2, 2, 2, 2, 2]))
