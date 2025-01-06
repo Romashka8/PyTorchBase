@@ -116,6 +116,10 @@ class Tensor(object):
                         new_grad[indices_[i]] += grad_[i]
                     self.creators[0].backward(Tensor(new_grad))
 
+                if self.creation_op == 'cross_entropy':
+                    dx = self.softmax_output - self.target_dist
+                    self.creators[0].backward(Tensor(dx))
+
     def __add__(self, other):
         if self.autograd and other.autograd:
             return Tensor(self.data + other.data,
@@ -210,6 +214,29 @@ class Tensor(object):
             new.index_select_indices = indices
             return new
         return Tensor(self.data[indices.data])
+
+    def cross_entropy(self, target_indices):
+
+        temp = np.exp(self.data)
+        softmax_output = temp / np.sum(temp,
+                                       axis=len(self.data.shape) - 1,
+                                       keepdims=True)
+
+        t = target_indices.data.flatten()
+        p = softmax_output.reshape(len(t), -1)
+        target_dist = np.eye(p.shape[1])[t]
+        loss = -(np.log(p) * target_dist).sum(1).mean()
+
+        if self.autograd:
+            out = Tensor(loss,
+                         autograd=True,
+                         creators=[self],
+                         creation_op="cross_entropy")
+            out.softmax_output = softmax_output
+            out.target_dist = target_dist
+            return out
+
+        return Tensor(loss)
 
     def __repr__(self):
         return str(self.data.__repr__())
@@ -310,6 +337,15 @@ class MSELoss(Layer):
 
     def forward(self, pred, target):
         return ((pred - target) ** 2).sum(0)
+
+
+# Define cross entropy loss
+class CrossEntropyLoss(Layer):
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, input, target):
+        return input.cross_entropy(target)
 
 
 # Embedding layer - for NLP tasks
