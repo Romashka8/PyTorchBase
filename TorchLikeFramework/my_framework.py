@@ -61,7 +61,7 @@ class Tensor(object):
             # are accounted for override waiting for children if
             # "backprop" was called on this variable directly
             if self.creators is not None\
-                    and self.all_children_grads_accounted_for() or grad_origin is None:
+                    and (self.all_children_grads_accounted_for() or grad_origin is None):
 
                 if self.creation_op == 'add':
                     self.creators[0].backward(self.grad, self)
@@ -88,12 +88,12 @@ class Tensor(object):
                 if self.creation_op == 'transpose':
                     self.creators[0].backward(self.grad.transpose())
 
-                if 'sum_' in self.creation_op:
+                if 'sum' in self.creation_op:
                     dim = int(self.creation_op.split('_')[1])
                     self.creators[0].backward(self.grad.expand(dim,
                                                                self.creators[0].data.shape[dim]))
 
-                if 'expand_' in self.creation_op:
+                if 'expand' in self.creation_op:
                     dim = int(self.creation_op.split('_')[1])
                     self.creators[0].backward(self.grad.sum(dim))
 
