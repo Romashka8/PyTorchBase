@@ -370,7 +370,7 @@ class MSELoss(Layer):
         super().__init__()
 
     def forward(self, pred, target):
-        return ((pred - target) ** 2).sum(0)
+        return ((pred - target) * (pred - target)).sum(0)
 
 
 # Define cross entropy loss
